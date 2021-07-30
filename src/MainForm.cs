@@ -16,7 +16,9 @@ namespace TTS
         // Current voice
         private String voice = "";
         // Is SSML enabled
-        private Boolean SSMLMode = false;
+        private bool SSMLMode = false;
+        // Is it speaking
+        private bool IsSpeaking = false;
         // Initialize a new instance of the SpeechSynthesizer.  
         private SpeechSynthesizer synth = new SpeechSynthesizer();
         // Save file dialog 
@@ -27,6 +29,24 @@ namespace TTS
             InitializeComponent();
 
             saveFileDialog.FileOk += SaveFileDialog_FileOk;
+
+            synth.SpeakStarted += Synth_SpeakStarted;
+            synth.SpeakCompleted += Synth_SpeakCompleted;
+            synth.SpeakProgress += Synth_SpeakProgress;
+        }
+
+        private void Synth_SpeakProgress(object sender, SpeakProgressEventArgs e)
+        {
+        }
+
+        private void Synth_SpeakCompleted(object sender, SpeakCompletedEventArgs e)
+        {
+            IsSpeaking = false;
+        }
+
+        private void Synth_SpeakStarted(object sender, SpeakStartedEventArgs e)
+        {
+            IsSpeaking = true;
         }
 
         private void SaveFileDialog_FileOk(object sender, CancelEventArgs e)
@@ -56,37 +76,43 @@ namespace TTS
         {
             try
             {
-                SSMLMode = ssmlInput.Text != "";
-
-                if (textInput.Text.Equals("") && !SSMLMode)
+                if (!IsSpeaking)
                 {
-                    MessageBox.Show(this, "Enter a text for the TTS to speak", "TTSBoard", MessageBoxButtons.OK, MessageBoxIcon.Information);
-                    return;
-                }
+                    SSMLMode = ssmlInput.Text != "";
 
-                // Configure the audio output.   
-                synth.SetOutputToDefaultAudioDevice();
+                    if (textInput.Text.Equals("") && !SSMLMode)
+                    {
+                        MessageBox.Show(this, "Enter a text for the TTS to speak", "TTSBoard", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                        return;
+                    }
 
-                // Select a voice.
-                synth.SelectVoice(voice);
+                    // Configure the audio output.   
+                    synth.SetOutputToDefaultAudioDevice();
 
-                // Set the rate.
-                synth.Rate = (int)rate.Value;
+                    // Select a voice.
+                    synth.SelectVoice(voice);
 
-                if (SSMLMode)
-                {
-                    // Speak SSML
-                    synth.SpeakSsmlAsync(ssmlInput.Text);
-                }
-                else
-                {
-                    // Speak a string.  
-                    synth.SpeakAsync(textInput.Text);
+                    // Set the rate.
+                    synth.Rate = (int)rate.Value;
+
+                    if (SSMLMode)
+                    {
+                        // Speak SSML
+                        synth.SpeakSsmlAsync(ssmlInput.Text);
+                    }
+                    else
+                    {
+                        // Speak a string.  
+                        synth.SpeakAsync(textInput.Text);
+                    }
                 }
 
             } catch (ArgumentException ex)
             {
                 MessageBox.Show(this, "Select a voice to speak", "TTSBoard", MessageBoxButtons.OK, MessageBoxIcon.Information);
+            } catch (Exception ex)
+            {
+                MessageBox.Show(this, "Something went wrong while trying to convert your text to vocal speech...", "TTSBoard", MessageBoxButtons.OK, MessageBoxIcon.Information);
             }
         }
 
